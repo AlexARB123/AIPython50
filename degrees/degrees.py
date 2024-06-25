@@ -91,7 +91,7 @@ def shortest_path(source, target):
 
     # Create the frontier and initial node to explore
     frontier = QueueFrontier()
-    root = Node(state = source, parent = None, action = None)
+    root = Node(state=source, parent=None, action=None)
     frontier.add(root)
 
     # Create the set to take into account all visited IDs
@@ -127,10 +127,8 @@ def shortest_path(source, target):
             # Check if actor is already in queue or has already been explored
             if actor not in explored and not frontier.contains_state(actor):
                 # Create node for actor and add
-                child = Node(state = actor, parent = currNode, action = movie)
+                child = Node(state=actor, parent=currNode, action=movie)
                 frontier.add(child)
-                
-    
         
     raise NotImplementedError
 
