@@ -207,6 +207,7 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+        empty = Sentence(set(), 0)
         # 1) Mark the cell as a move made
         self.moves_made.add(cell)
 
@@ -239,8 +240,11 @@ class MinesweeperAI():
                 new_knowledge.add(new_cell)
         
         # Once sentence is finished, check if the sentence is not repeated somewhere else to avoid redundancy
+        print("New Knowledge: ", new_knowledge)
         if Sentence(new_knowledge, count) not in self.knowledge:
-            self.knowledge.append(Sentence(new_knowledge, count))
+            if Sentence(new_knowledge, count) is not empty:
+                self.knowledge.append(Sentence(new_knowledge, count))
+                print("knowledge appended")
         
         # 4) Mark any additional cells as safe or as mines
         for sentence in self.knowledge:
@@ -253,15 +257,13 @@ class MinesweeperAI():
                     if new_cell == cell:
                         continue
                     self.mark_mine(new_cell)
-            
+       
             # Mark safes in each sentence
             if safeCells:
                 for new_cell in safeCells.copy():
                     if new_cell == cell:
                         continue
                     self.mark_safe(new_cell)
-        
-        print("Safes: ", self.safes)
         
         # 5) Add any new sentences that can be inferred from exisiting knowledge
         knowledge_changed = True
@@ -286,11 +288,13 @@ class MinesweeperAI():
                 for mine in mines:
                     self.mark_mine(mine)
             
-            empty = Sentence(set(),0)
+         
 
             self.knowledge[:] = [x for x in self.knowledge if x != empty]
             for sentence1 in self.knowledge:
                 for sentence2 in self.knowledge:
+                    if sentence1 is empty:
+                        continue
                     # Check if the sentence is the same sentence
                     if sentence1 is sentence2:
                         continue
@@ -312,8 +316,10 @@ class MinesweeperAI():
                         if new_knowledge not in self.knowledge:
                             knowledge_changed = True
                             self.knowledge.append(new_knowledge)
-        
-            return None
+
+        for i in self.knowledge:
+            print(i)
+        return None
         raise NotImplementedError
 
     def make_safe_move(self):
@@ -341,12 +347,13 @@ class MinesweeperAI():
             2) are not known to be mines
         """
         # Check if move can be made
-        if len(self.mines) + len(self.moves_made) == self.height * self.width:
+        moves = []
+        for i in range(self.height):
+            for j in range(self.width):
+                if (i,j) not in self.moves_made and (i,j) not in self.mines:
+                    moves.append((i,j))
+        if len(moves) == 0:
             return None
-        
-        while True:
-            i = random.randrange(self.height)
-            j = random.randrange(self.width)
-            if (i,j) not in self.moves_made and (i,j) not in self.mines:
-                return (i,j)
+        else:
+            return random.choice(moves)
         raise NotImplementedError
