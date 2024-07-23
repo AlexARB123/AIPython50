@@ -215,110 +215,64 @@ class MinesweeperAI():
         self.safes.add(cell)
 
         # 3) Create a new sentence with the cell and all of it's neighboring cells
-        new_knowledge = set()
+        # Make sure sentence checks for all cells AND discards cells which status is already known
+        min_i = max(cell[0] - 1, 0)
+        max_i = min(cell[0] + 2, self.height)
+        min_j = max(cell[1] - 1, 0)
+        max_j = min(cell[1] + 2, self.width)
         
-        for i in range(cell[0] -1, cell[0] + 2):
-            for j in range(cell[1] - 1, cell[1] + 2):
-                print("HI", i, "," , j)
-                # Check both rows (i) and columns (k) and traverse from there
-                # Make sure the cell value is valid
-                print("Hello")
-                if i < 0 or i >= self.height or j < 0 or j >= self.width:
-                    print("Ran: ", i, " ", j)
+        print(min_i, max_i, min_j, max_j)
+        newCells = set()
+        currMines = count
+        for i in range(min_i, max_i):
+            for j in range(min_j, max_j):
+                print(i,j)
+                if (i,j) in self.safes:
+                    continue
+                if (i,j) in self.moves_made:
+                    continue
+                if (i,j) in self.mines:
+                    currMines = currMines -1
+                    continue
+                if (i,j) == cell:
                     continue
                 
-                new_cell = (i,j)
-                # Cell value interpreted to be valid check if the cell hasn't already been clicked or is in safes
-                if new_cell in self.moves_made or new_cell in self.safes:
-                    continue
-                
-                # If new cell is known to be a mine, ignore and decrease by 1
-                if new_cell in self.mines:
-                    count -= 1
-                    continue
-                # If all conditions are met, add the new cell to the knowledge base
-                new_knowledge.add(new_cell)
+                newCells.add((i,j))
+
+        newSentence = Sentence(newCells, currMines)
         
-        # Once sentence is finished, check if the sentence is not repeated somewhere else to avoid redundancy
-        print("New Knowledge: ", new_knowledge)
-        if Sentence(new_knowledge, count) not in self.knowledge:
-            if Sentence(new_knowledge, count) is not empty:
-                self.knowledge.append(Sentence(new_knowledge, count))
-                print("knowledge appended")
-        
+        if newSentence != empty:
+            print("Check: ", newSentence)
+            if newSentence not in self.knowledge:
+                self.knowledge.append(newSentence)
+
         # 4) Mark any additional cells as safe or as mines
         for sentence in self.knowledge:
-            mines = sentence.known_mines()
-            safeCells = sentence.known_safes()
-
-            # Mark mines in each sentence
-            if mines:
-                for new_cell in mines.copy():
-                    if new_cell == cell:
-                        continue
-                    self.mark_mine(new_cell)
-       
-            # Mark safes in each sentence
-            if safeCells:
-                for new_cell in safeCells.copy():
-                    if new_cell == cell:
-                        continue
-                    self.mark_safe(new_cell)
-        
+            if sentence.known_mines().copy():
+                for cells in sentence.known_mines().copy():
+                    self.mark_mine(cells)
+            if sentence.known_safes().copy():
+                for cells in sentence.known_safes().copy():
+                    self.mark_safe(cells)
         # 5) Add any new sentences that can be inferred from exisiting knowledge
-        knowledge_changed = True
+        for sentence in self.knowledge:
+            print(sentence)
+        for sentence in self.knowledge:
+            if newSentence.cells.issubset(sentence.cells) and sentence.count > 0 and newSentence.count > 0 and newSentence != sentence:
+                createSentence = Sentence(list(sentence.cells.difference(newSentence.cells)), sentence.count - newSentence.count)
+                if createSentence != empty:
+                    self.knowledge.append(createSentence)
+                    print("Sentence created")
+        
+        # 6) Add any new knowledge to the know mines
+        for sentence in self.knowledge:
+            if sentence.known_mines().copy():
+                for cells in sentence.known_mines().copy():
+                    self.mark_mine(cells)
+            if sentence.known_safes().copy():
+                for cells in sentence.known_safes().copy():
+                    self.mark_safe(cells)
 
-        while knowledge_changed:
-            knowledge_changed = False
-
-            safes = set()
-            mines = set()
-
-            for sentence in self.knowledge:
-                safes = safes.union(sentence.known_safes())
-                mines = mines.union(sentence.known_mines())
-            
-            if safes:
-                knowledge_changed = True
-                for safe in safes:
-                    self.mark_safe(safe)
-            
-            if mines:
-                knowledge_changed = True
-                for mine in mines:
-                    self.mark_mine(mine)
-            
-         
-
-            self.knowledge[:] = [x for x in self.knowledge if x != empty]
-            for sentence1 in self.knowledge:
-                for sentence2 in self.knowledge:
-                    if sentence1 is empty:
-                        continue
-                    # Check if the sentence is the same sentence
-                    if sentence1 is sentence2:
-                        continue
-                    
-                    # Check if the sentence has the same value as another
-                    if sentence1.cells == sentence2.cells:
-                        self.knowledge.remove(sentence1)
-                        continue
-                    
-                    if sentence1.cells == set() and sentence1.count > 0:
-                        raise ValueError
-                    
-                    # Check for subsets
-                    if sentence1.cells.issubset(sentence2.cells):
-                        new_knowledge = Sentence(
-                            sentence2.cells - sentence1.cells,
-                            sentence2.count - sentence1.count
-                        )
-                        if new_knowledge not in self.knowledge:
-                            knowledge_changed = True
-                            self.knowledge.append(new_knowledge)
-
-        for i in self.knowledge:
-            print(i)
         return None
         raise NotImplementedError
 
